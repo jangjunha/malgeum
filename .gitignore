@@ -1,0 +1,8 @@
+target/
+node_modules/
+dist/
+*.sqlite3
+*.sqlite3-*
+.env
+.DS_Store
+client/src-tauri/gen/
