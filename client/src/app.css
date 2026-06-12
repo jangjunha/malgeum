@@ -1,0 +1,51 @@
+:root {
+  --bg-0: #17181c;
+  --bg-1: #1e2026;
+  --bg-2: #26282f;
+  --bg-3: #2f323b;
+  --fg-0: #e8e9ec;
+  --fg-1: #a6a9b3;
+  --accent: #6c9ef8;
+  --danger: #e06c75;
+  --ok: #7fbf7f;
+  --radius: 8px;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app {
+  margin: 0;
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--fg-0);
+}
+
+button {
+  background: var(--bg-3);
+  color: var(--fg-0);
+  border: none;
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+button:hover { filter: brightness(1.15); }
+button.primary { background: var(--accent); color: #0d1117; font-weight: 600; }
+button.danger { background: var(--danger); color: #0d1117; }
+button:disabled { opacity: 0.5; cursor: default; }
+
+input, select {
+  background: var(--bg-0);
+  color: var(--fg-0);
+  border: 1px solid var(--bg-3);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font: inherit;
+}
+input:focus, select:focus { outline: 1px solid var(--accent); }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 4px; }
