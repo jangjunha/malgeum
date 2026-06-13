@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hardened-runtime entitlements for the signed/notarized macOS bundle.
+     Notarization forces the hardened runtime on, and under it the Info.plist
+     usage strings alone are not enough: macOS denies getUserMedia unless the
+     app is also entitled to the mic/camera devices. (Screen-recording stays a
+     runtime TCC prompt — System Settings ▸ Privacy ▸ Screen Recording — and
+     needs no entitlement here.) -->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
+  </dict>
+</plist>
