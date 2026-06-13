@@ -9,8 +9,13 @@ server** except when a peer needs the TURN relay.
 
 ```sh
 cp .env.example .env       # set DOMAIN and TURN_SECRET
-docker compose up -d --build
+docker compose pull        # fetch the prebuilt server image from GHCR
+docker compose up -d
 ```
+
+This uses the multi-arch (amd64 + arm64) image published to GitHub Packages at
+`ghcr.io/jangjunha/p2p-voicechats/server`. To build the server from source
+instead of pulling, run `docker compose up -d --build`.
 
 Point a DNS record (or dynamic-DNS name) at the box. Clients connect with
 `https://<DOMAIN>` as the server URL.
@@ -29,6 +34,11 @@ Lightsail, or Oracle Cloud free tier all work; TURN egress only matters for
 calls where a friend's direct P2P fails.
 
 ## Bare binary (no Docker)
+
+Each tagged release ships a static, dependency-free `vc-server` binary for
+`amd64` and `arm64` on the
+[Releases page](https://github.com/jangjunha/p2p-voicechats/releases). Download
+the archive for your architecture, or build from source:
 
 ```sh
 cargo build --release -p vc-server

@@ -1,0 +1,89 @@
+name: release
+
+# Cut a release by pushing a version tag:
+#   git tag v0.1.0 && git push origin v0.1.0
+# This builds static server binaries (-> GitHub Releases) and a multi-arch
+# server image (-> GitHub Packages / GHCR).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release and upload binaries
+  packages: write # push the image to GHCR
+
+jobs:
+  server-binaries:
+    name: server binary (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            arch: amd64
+          - target: aarch64-unknown-linux-musl
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # Builds a static musl binary (cross-compiles aarch64 via `cross`),
+      # archives it, and uploads it to the GitHub Release for this tag.
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: vc-server
+          target: ${{ matrix.target }}
+          manifest-path: server/Cargo.toml
+          archive: vc-server-$tag-$target
+          checksum: sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+      # Keep the raw binary for the image job (and as a convenience artifact).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vc-server-${{ matrix.arch }}
+          path: server/target/${{ matrix.target }}/release/vc-server
+          if-no-files-found: error
+
+  image:
+    name: server image
+    needs: server-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: server/dist
+
+      - name: Arrange binaries for buildx
+        run: |
+          set -eux
+          mkdir -p server/ctx/amd64 server/ctx/arm64
+          install -m 0755 server/dist/vc-server-amd64/vc-server server/ctx/amd64/vc-server
+          install -m 0755 server/dist/vc-server-arm64/vc-server server/ctx/arm64/vc-server
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/server
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: server/ctx
+          file: server/Dockerfile.release
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

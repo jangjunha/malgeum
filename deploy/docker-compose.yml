@@ -1,5 +1,8 @@
 services:
   server:
+    # Pull the prebuilt image: `docker compose pull && docker compose up -d`.
+    # Or build from source instead: `docker compose up -d --build`.
+    image: ghcr.io/jangjunha/p2p-voicechats/server:latest
     build: ../server
     restart: unless-stopped
     environment:
