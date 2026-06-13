@@ -1,7 +1,7 @@
 name: client-windows
 
 # Compiles the Windows desktop client (WebView2). Uses --no-bundle, so it
-# produces voicechats.exe only — no installer. Download it from the run's
+# produces malguem.exe only — no installer. Download it from the run's
 # Artifacts. Also serves as the Windows compile check for the Rust shell.
 on:
   workflow_dispatch:
@@ -45,13 +45,13 @@ jobs:
       - run: npx tauri build --no-bundle
       # SLSA build provenance: signed proof this exe came from this repo+commit
       # via this workflow. Verify with:
-      #   gh attestation verify voicechats.exe --repo jangjunha/p2p-voicechats
+      #   gh attestation verify malguem.exe --repo jangjunha/malguem
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: client/src-tauri/target/release/voicechats.exe
+          subject-path: client/src-tauri/target/release/malguem.exe
       - uses: actions/upload-artifact@v4
         with:
-          name: voicechats-windows-exe
-          path: client/src-tauri/target/release/voicechats.exe
+          name: malguem-windows-exe
+          path: client/src-tauri/target/release/malguem.exe
           if-no-files-found: error

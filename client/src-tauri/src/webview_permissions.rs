@@ -19,7 +19,7 @@ pub fn allow_media(window: &tauri::WebviewWindow) {
         let core: ICoreWebView2 = match webview.controller().CoreWebView2() {
             Ok(core) => core,
             Err(e) => {
-                eprintln!("voicechats: could not access CoreWebView2: {e}");
+                eprintln!("malguem: could not access CoreWebView2: {e}");
                 return;
             }
         };
@@ -45,12 +45,12 @@ pub fn allow_media(window: &tauri::WebviewWindow) {
         // which avoids depending on EventRegistrationToken's exact module path.
         let mut token = Default::default();
         if let Err(e) = core.add_PermissionRequested(&handler, &mut token) {
-            eprintln!("voicechats: failed to register PermissionRequested: {e}");
+            eprintln!("malguem: failed to register PermissionRequested: {e}");
         }
     });
 
     if let Err(e) = result {
-        eprintln!("voicechats: with_webview failed: {e}");
+        eprintln!("malguem: with_webview failed: {e}");
     }
 }
 

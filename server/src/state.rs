@@ -25,16 +25,16 @@ impl Config {
             .unwrap_or_default()
         };
         Self {
-            bind: std::env::var("VC_BIND").unwrap_or_else(|_| "0.0.0.0:8787".into()),
-            db_path: std::env::var("VC_DB").unwrap_or_else(|_| "vc.sqlite3".into()),
-            turn_secret: std::env::var("VC_TURN_SECRET").ok().filter(|s| !s.is_empty()),
-            turn_urls: csv(std::env::var("VC_TURN_URLS").ok()),
-            turn_ttl_secs: std::env::var("VC_TURN_TTL")
+            bind: std::env::var("MALGUEM_BIND").unwrap_or_else(|_| "0.0.0.0:8787".into()),
+            db_path: std::env::var("MALGUEM_DB").unwrap_or_else(|_| "malguem.sqlite3".into()),
+            turn_secret: std::env::var("MALGUEM_TURN_SECRET").ok().filter(|s| !s.is_empty()),
+            turn_urls: csv(std::env::var("MALGUEM_TURN_URLS").ok()),
+            turn_ttl_secs: std::env::var("MALGUEM_TURN_TTL")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(3600),
             stun_urls: {
-                let v = csv(std::env::var("VC_STUN_URLS").ok());
+                let v = csv(std::env::var("MALGUEM_STUN_URLS").ok());
                 if v.is_empty() {
                     vec!["stun:stun.l.google.com:19302".into()]
                 } else {

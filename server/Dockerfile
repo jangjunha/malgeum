@@ -4,8 +4,8 @@ COPY . .
 RUN cargo build --release
 
 FROM debian:bookworm-slim
-COPY --from=build /src/target/release/vc-server /usr/local/bin/vc-server
-ENV VC_DB=/data/vc.sqlite3 VC_BIND=0.0.0.0:8787
+COPY --from=build /src/target/release/malguem-server /usr/local/bin/malguem-server
+ENV MALGUEM_DB=/data/malguem.sqlite3 MALGUEM_BIND=0.0.0.0:8787
 VOLUME /data
 EXPOSE 8787
-CMD ["vc-server"]
+CMD ["malguem-server"]

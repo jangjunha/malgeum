@@ -7,8 +7,8 @@
 <plist version="1.0">
   <dict>
     <key>NSMicrophoneUsageDescription</key>
-    <string>voicechats uses your microphone for voice calls.</string>
+    <string>malguem uses your microphone for voice calls.</string>
     <key>NSCameraUsageDescription</key>
-    <string>voicechats uses your camera for video.</string>
+    <string>malguem uses your camera for video.</string>
   </dict>
 </plist>

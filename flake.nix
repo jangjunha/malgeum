@@ -1,5 +1,5 @@
 {
-  description = "p2p-voicechats — self-hostable voice/chat/screen-share for friends";
+  description = "malguem — self-hostable voice/chat/screen-share for friends";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -63,8 +63,8 @@
         # The server: one Rust binary with bundled SQLite. buildRustPackage
         # reads server/Cargo.lock directly, so dependency versions are pinned
         # without a vendored hash to maintain.
-        vc-server = rustPlatform.buildRustPackage {
-          pname = "vc-server";
+        malguem-server = rustPlatform.buildRustPackage {
+          pname = "malguem-server";
           version = "0.1.0";
           src = ./server;
           cargoLock.lockFile = ./server/Cargo.lock;
@@ -77,26 +77,26 @@
           doCheck = false;
 
           meta = with pkgs.lib; {
-            description = "Signaling + ciphertext-storage server for p2p-voicechats";
+            description = "Signaling + ciphertext-storage server for malguem";
             license = licenses.mit;
-            mainProgram = "vc-server";
+            mainProgram = "malguem-server";
             platforms = platforms.unix;
           };
         };
       in
       {
         packages = {
-          default = vc-server;
-          inherit vc-server;
+          default = malguem-server;
+          inherit malguem-server;
         };
 
         apps.default = {
           type = "app";
-          program = "${vc-server}/bin/vc-server";
+          program = "${malguem-server}/bin/malguem-server";
         };
 
         # `nix flake check` builds the server package.
-        checks.vc-server = vc-server;
+        checks.malguem-server = malguem-server;
 
         formatter = pkgs.nixfmt-rfc-style;
 
@@ -114,7 +114,7 @@
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
 
           shellHook = ''
-            echo "p2p-voicechats dev shell"
+            echo "malguem dev shell"
             echo "  rust : $(rustc --version)"
             echo "  node : $(node --version)"
             echo

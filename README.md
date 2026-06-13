@@ -1,4 +1,4 @@
-# p2p-voicechats
+# malguem
 
 A lightweight, self-hostable Discord alternative for a small group of friends:
 text chat, voice calls, and low-latency game screen sharing. Media is
@@ -22,7 +22,7 @@ a heavy client, and ads.
       └────────────────┬──────────────────────────────┘
                        ▼
               ┌─────────────────┐
-              │  vc-server      │  single Rust binary + SQLite
+              │  malguem-server │  single Rust binary + SQLite
               │  (+ coturn)     │  runs on a home box or tiny VPS
               └─────────────────┘
 ```
@@ -30,7 +30,7 @@ a heavy client, and ads.
 - **Client**: Tauri v2 shell (Rust) + Svelte/TypeScript UI in WebView2.
   All real-time media uses the webview's built-in Chromium WebRTC stack:
   hardware encoding, congestion control, and `getStats()` telemetry for free.
-- **Server**: one Rust binary (`vc-server`), SQLite storage, WebSocket
+- **Server**: one Rust binary (`malguem-server`), SQLite storage, WebSocket
   signaling. It never sees media and never sees plaintext messages.
 - **Connectivity**: ICE with STUN; self-hosted TURN (coturn) as an automatic
   last resort for CGNAT/symmetric-NAT peers. TURN relays ciphertext only.
@@ -46,7 +46,7 @@ See [docs/DECISIONS.md](docs/DECISIONS.md) for why each of these was chosen,
 ## Repository layout
 
 ```
-server/    vc-server: signaling + ciphertext storage (Rust, axum, SQLite)
+server/    malguem-server: signaling + ciphertext storage (Rust, axum, SQLite)
 client/    desktop app (Tauri v2 + Svelte 5 + TypeScript)
 deploy/    docker-compose, Caddyfile, coturn config
 docs/      decisions, protocol, crypto design, spike checklist
@@ -60,11 +60,11 @@ cp .env.example .env   # set DOMAIN and TURN_SECRET
 docker compose up -d
 ```
 
-This starts `vc-server`, coturn (TURN relay), and Caddy (automatic TLS).
+This starts `malguem-server`, coturn (TURN relay), and Caddy (automatic TLS).
 A home box behind a router needs ports 443/tcp, 3478/udp+tcp and the coturn
 relay range 49160–49200/udp forwarded. See [deploy/README.md](deploy/README.md).
 
-Bare-metal alternative: `cargo build --release -p vc-server` produces a single
+Bare-metal alternative: `cargo build --release -p malguem-server` produces a single
 binary; point it at a SQLite path and put any TLS proxy in front.
 
 ## Developing
@@ -85,8 +85,8 @@ Docker, use the flake:
 
 ```sh
 nix develop                  # dev shell with pinned Rust + Node + Tauri deps
-nix build .#vc-server        # build the server binary reproducibly
-nix run  .#vc-server         # build and run it
+nix build .#malguem-server        # build the server binary reproducibly
+nix run  .#malguem-server         # build and run it
 ```
 
 The toolchain version lives in one place — `rustToolchain` in `flake.nix`.

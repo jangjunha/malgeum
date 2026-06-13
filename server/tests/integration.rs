@@ -4,7 +4,7 @@ use ed25519_dalek::{Signer, SigningKey};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use tokio_tungstenite::tungstenite::Message;
-use vc_server::state::Config;
+use malguem_server::state::Config;
 
 struct TestServer {
     base: String,
@@ -22,8 +22,8 @@ async fn spawn_server() -> TestServer {
         turn_ttl_secs: 600,
         stun_urls: vec!["stun:stun.example.com:3478".into()],
     };
-    let state = vc_server::build_state(cfg);
-    let app = vc_server::app(state);
+    let state = malguem_server::build_state(cfg);
+    let app = malguem_server::app(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {

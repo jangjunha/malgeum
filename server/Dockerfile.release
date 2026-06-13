@@ -3,13 +3,13 @@
 # For building from source instead, use server/Dockerfile (the compose default).
 #
 # Build context is the directory holding per-arch binaries:
-#   <context>/amd64/vc-server
-#   <context>/arm64/vc-server
+#   <context>/amd64/malguem-server
+#   <context>/arm64/malguem-server
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
 ARG TARGETARCH
-COPY ${TARGETARCH}/vc-server /usr/local/bin/vc-server
-ENV VC_DB=/data/vc.sqlite3 VC_BIND=0.0.0.0:8787
+COPY ${TARGETARCH}/malguem-server /usr/local/bin/malguem-server
+ENV MALGUEM_DB=/data/malguem.sqlite3 MALGUEM_BIND=0.0.0.0:8787
 VOLUME /data
 EXPOSE 8787
-ENTRYPOINT ["/usr/local/bin/vc-server"]
+ENTRYPOINT ["/usr/local/bin/malguem-server"]

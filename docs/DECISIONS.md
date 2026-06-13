@@ -68,7 +68,7 @@ remains a future escape hatch without protocol changes.
 ## 4. Connectivity
 
 **ICE with public STUN, plus self-hosted TURN (coturn) as an automatic last
-resort.** Media never touches `vc-server`.
+resort.** Media never touches `malguem-server`.
 
 - Korean residential ISPs (KT, SK Broadband, LG U+) use CGNAT on some lines;
   STUN-only would leave such peers permanently unable to connect.
@@ -77,7 +77,7 @@ resort.** Media never touches `vc-server`.
 - TURN relays DTLS-SRTP ciphertext it cannot decrypt; E2EE is preserved.
 - coturn runs next to the server (same compose file, Seoul-local → minimal
   added latency). Credentials are ephemeral HMAC credentials
-  (`use-auth-secret` mechanism) minted by `vc-server` for authenticated space
+  (`use-auth-secret` mechanism) minted by `malguem-server` for authenticated space
   members only.
 - IPv6 ICE candidates enabled — Korean dual-stack often bypasses CGNAT.
 
@@ -109,7 +109,7 @@ Full design in [CRYPTO.md](CRYPTO.md). Summary:
 
 ## 6. Deployment & distribution
 
-- **Server:** primary story is `docker compose` (vc-server + coturn + Caddy
+- **Server:** primary story is `docker compose` (malguem-server + coturn + Caddy
   for automatic TLS) on a home box, with dynamic DNS and port forwarding
   documented. A bare static binary + systemd is supported for minimalists; a
   ~$5/mo Seoul VPS works identically.

@@ -1,5 +1,5 @@
 [package]
-name = "voicechats"
+name = "malguem"
 version = "0.1.0"
 edition = "2021"
 description = "Lightweight self-hosted voice/chat/screen-share for friends"

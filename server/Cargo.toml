@@ -1,8 +1,8 @@
 [package]
-name = "vc-server"
+name = "malguem-server"
 version = "0.1.0"
 edition = "2021"
-description = "Signaling and ciphertext-storage server for p2p-voicechats"
+description = "Signaling and ciphertext-storage server for malguem"
 license = "MIT"
 
 [dependencies]

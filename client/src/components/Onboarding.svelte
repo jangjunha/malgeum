@@ -28,7 +28,7 @@
 
 <div class="wrap">
   <form class="card" onsubmit={submit}>
-    <h1>voicechats</h1>
+    <h1>malguem</h1>
     <p class="sub">Your identity key is generated on this device. The server never sees your messages or media.</p>
 
     <div class="tabs">

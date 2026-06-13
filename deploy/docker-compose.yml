@@ -2,16 +2,16 @@ services:
   server:
     # Pull the prebuilt image: `docker compose pull && docker compose up -d`.
     # Or build from source instead: `docker compose up -d --build`.
-    image: ghcr.io/jangjunha/p2p-voicechats/server:latest
+    image: ghcr.io/jangjunha/malguem/server:latest
     build: ../server
     restart: unless-stopped
     environment:
-      VC_DB: /data/vc.sqlite3
-      VC_BIND: 0.0.0.0:8787
-      VC_TURN_SECRET: ${TURN_SECRET}
-      VC_TURN_URLS: turn:${DOMAIN}:3478?transport=udp,turn:${DOMAIN}:3478?transport=tcp
+      MALGUEM_DB: /data/malguem.sqlite3
+      MALGUEM_BIND: 0.0.0.0:8787
+      MALGUEM_TURN_SECRET: ${TURN_SECRET}
+      MALGUEM_TURN_URLS: turn:${DOMAIN}:3478?transport=udp,turn:${DOMAIN}:3478?transport=tcp
     volumes:
-      - vc-data:/data
+      - malguem-data:/data
 
   # TURN relay: a last-resort path for peers behind CGNAT/symmetric NAT.
   # It relays already-encrypted SRTP and cannot read media (docs/CRYPTO.md).
@@ -43,6 +43,6 @@ services:
       - caddy-config:/config
 
 volumes:
-  vc-data:
+  malguem-data:
   caddy-data:
   caddy-config:

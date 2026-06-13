@@ -14,7 +14,7 @@ docker compose up -d
 ```
 
 This uses the multi-arch (amd64 + arm64) image published to GitHub Packages at
-`ghcr.io/jangjunha/p2p-voicechats/server`. To build the server from source
+`ghcr.io/jangjunha/malguem/server`. To build the server from source
 instead of pulling, run `docker compose up -d --build`.
 
 Point a DNS record (or dynamic-DNS name) at the box. Clients connect with
@@ -56,16 +56,16 @@ On a VPS with a directly-attached public IP this is not needed.
 
 ## Bare binary (no Docker)
 
-Each tagged release ships a static, dependency-free `vc-server` binary for
+Each tagged release ships a static, dependency-free `malguem-server` binary for
 `amd64` and `arm64` on the
-[Releases page](https://github.com/jangjunha/p2p-voicechats/releases). Download
+[Releases page](https://github.com/jangjunha/malguem/releases). Download
 the archive for your architecture, or build from source:
 
 ```sh
-cargo build --release -p vc-server
-VC_DB=/var/lib/vc/vc.sqlite3 VC_TURN_SECRET=… \
-  VC_TURN_URLS="turn:chat.example.com:3478?transport=udp" \
-  ./target/release/vc-server
+cargo build --release -p malguem-server
+MALGUEM_DB=/var/lib/malguem/malguem.sqlite3 MALGUEM_TURN_SECRET=… \
+  MALGUEM_TURN_URLS="turn:chat.example.com:3478?transport=udp" \
+  ./target/release/malguem-server
 ```
 
 Put any TLS-terminating proxy in front of port 8787 and install coturn from
@@ -75,15 +75,15 @@ your distro (`use-auth-secret` + the same secret).
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `VC_BIND` | `0.0.0.0:8787` | HTTP listen address |
-| `VC_DB` | `vc.sqlite3` | SQLite path |
-| `VC_TURN_SECRET` | unset | coturn shared secret; unset = STUN-only |
-| `VC_TURN_URLS` | empty | TURN URLs handed to clients |
-| `VC_TURN_TTL` | `3600` | TURN credential lifetime (seconds) |
-| `VC_STUN_URLS` | Google STUN | STUN URLs handed to clients |
+| `MALGUEM_BIND` | `0.0.0.0:8787` | HTTP listen address |
+| `MALGUEM_DB` | `malguem.sqlite3` | SQLite path |
+| `MALGUEM_TURN_SECRET` | unset | coturn shared secret; unset = STUN-only |
+| `MALGUEM_TURN_URLS` | empty | TURN URLs handed to clients |
+| `MALGUEM_TURN_TTL` | `3600` | TURN credential lifetime (seconds) |
+| `MALGUEM_STUN_URLS` | Google STUN | STUN URLs handed to clients |
 
 ## Backups
 
-Everything lives in the SQLite file (`vc-data` volume). It contains only
+Everything lives in the SQLite file (`malguem-data` volume). It contains only
 ciphertext and metadata; copy it anywhere. Losing it loses chat history but
 not identities (those live on members' devices).

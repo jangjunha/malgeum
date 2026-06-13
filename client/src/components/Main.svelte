@@ -171,7 +171,7 @@
         {/if}
       </div>
     {:else}
-      <header>voicechats</header>
+      <header>malguem</header>
       <p class="hint">Create a space or join one with an invite token.</p>
     {/if}
   </aside>
