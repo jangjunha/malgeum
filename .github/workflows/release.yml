@@ -16,6 +16,12 @@ on:
         required: true
         default: v0.1.0
 
+# Run JS-based actions on Node 24 (Node 20 is deprecated on GitHub runners).
+# Also covers attest-build-provenance's internal sub-actions, which can't be
+# version-bumped individually.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 permissions:
   contents: write # create the release + tag and upload binaries
   packages: write # push the image (and its attestation) to GHCR
