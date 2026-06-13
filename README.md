@@ -78,6 +78,23 @@ cd client && npm install && npm run dev      # Vite dev server
 npm run tauri dev                            # full desktop app (Windows)
 ```
 
+### Reproducible toolchain (Nix)
+
+To pin the exact Rust/Node versions so builds match across machines, CI, and
+Docker, use the flake:
+
+```sh
+nix develop                  # dev shell with pinned Rust + Node + Tauri deps
+nix build .#vc-server        # build the server binary reproducibly
+nix run  .#vc-server         # build and run it
+```
+
+The toolchain version lives in one place — `rustToolchain` in `flake.nix`.
+With [direnv] installed, `direnv allow` loads the shell automatically. Commit
+the generated `flake.lock` after the first `nix develop` to lock the inputs.
+
+[direnv]: https://direnv.net
+
 ## Status
 
 Early development. Feature scope for v1 (deliberately small):
