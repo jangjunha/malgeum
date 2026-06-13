@@ -3,10 +3,10 @@ name: release
 # Two ways to cut a release:
 #  - push a version tag:   git tag v0.1.0 && git push origin v0.1.0
 #  - run manually:         Actions ▸ release ▸ "Run workflow" (enter version)
-# Either way this builds static server binaries + a signed/notarized macOS
-# desktop client (-> GitHub Releases) and a multi-arch server image (-> GitHub
-# Packages / GHCR). On manual runs the workflow itself creates the tag, so no
-# local tag push is required.
+# Either way this builds static server binaries, a signed/notarized macOS
+# desktop client, and a Windows desktop client (-> GitHub Releases) plus a
+# multi-arch server image (-> GitHub Packages / GHCR). On manual runs the
+# workflow itself creates the tag, so no local tag push is required.
 on:
   push:
     tags: ["v*"]
@@ -156,9 +156,53 @@ jobs:
           path: out/*
           if-no-files-found: error
 
+  client-windows:
+    name: Windows client
+    needs: setup
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: client
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: client/src-tauri
+      - run: npm ci
+      # Builds the frontend (beforeBuildCommand) then the Rust app, skipping
+      # installer bundling. WebView2 is assumed present on modern Windows.
+      - run: npx tauri build --no-bundle
+      - name: Package .exe + checksum
+        run: |
+          set -eux
+          ver="${{ needs.setup.outputs.version }}"
+          dist="malguem-${ver}-windows-x86_64"
+          out="$GITHUB_WORKSPACE/out"
+          mkdir -p "$out"
+          cp src-tauri/target/release/malguem.exe "$out/${dist}.exe"
+          ( cd "$out" && sha256sum "${dist}.exe" > "${dist}.exe.sha256" )
+      # SLSA build provenance for the .exe (same as the macOS .dmg). Verify:
+      #   gh attestation verify <file>.exe --repo ${{ github.repository }}
+      - uses: actions/attest@v4
+        with:
+          subject-path: out/*.exe
+      # Picked up by the release job's `release-*` download glob.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-windows
+          path: out/*
+          if-no-files-found: error
+
   release:
     name: github release
-    needs: [setup, binaries, client-macos]
+    needs: [setup, binaries, client-macos, client-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v7
