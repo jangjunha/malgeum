@@ -1,0 +1,39 @@
+name: client-windows
+
+# Compiles the Windows desktop client (WebView2). Uses --no-bundle, so it
+# produces voicechats.exe only — no installer. Download it from the run's
+# Artifacts. Also serves as the Windows compile check for the Rust shell.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "client/**"
+      - ".github/workflows/client-windows.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: client/src-tauri
+      - run: npm ci
+      # Builds the frontend (beforeBuildCommand) then the Rust app, skipping
+      # installer bundling.
+      - run: npx tauri build --no-bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voicechats-windows-exe
+          path: client/src-tauri/target/release/voicechats.exe
+          if-no-files-found: error
