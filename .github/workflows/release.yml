@@ -16,12 +16,6 @@ on:
         required: true
         default: v0.1.0
 
-# Run JS-based actions on Node 24 (Node 20 is deprecated on GitHub runners).
-# Also covers attest-build-provenance's internal sub-actions, which can't be
-# version-bumped individually.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 permissions:
   contents: write # create the release + tag and upload binaries
   packages: write # push the image (and its attestation) to GHCR
@@ -99,7 +93,7 @@ jobs:
           path: dist
           merge-multiple: true
       # SLSA build provenance for the downloadable archives.
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest@v4
         with:
           subject-path: dist/*.tar.gz
       # Creates the release and the v* tag (at this run's commit) if absent.
@@ -145,7 +139,7 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
       # SLSA build provenance for the image, attached to it in GHCR by digest.
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest@v4
         with:
           subject-name: ghcr.io/${{ github.repository }}/server
           subject-digest: ${{ steps.build.outputs.digest }}

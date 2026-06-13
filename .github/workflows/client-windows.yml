@@ -11,12 +11,6 @@ on:
       - "client/**"
       - ".github/workflows/client-windows.yml"
 
-# Run JS-based actions on Node 24 (Node 20 is deprecated on GitHub runners).
-# Also covers attest-build-provenance's internal sub-actions, which can't be
-# version-bumped individually.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 permissions:
   contents: read
   id-token: write # sign the provenance via Sigstore
@@ -47,7 +41,7 @@ jobs:
       # via this workflow. Verify with:
       #   gh attestation verify malguem.exe --repo jangjunha/malguem
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest@v4
         with:
           subject-path: client/src-tauri/target/release/malguem.exe
       - uses: actions/upload-artifact@v4
