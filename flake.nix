@@ -42,9 +42,12 @@
         };
 
         # Native libraries the Tauri shell links against on Linux. On Windows
-        # the client uses the system WebView2 runtime instead; these are the
-        # Linux equivalents needed for `npm run tauri dev`/`build`.
-        tauriDeps = with pkgs; [
+        # the client uses the system WebView2 runtime instead, and on macOS the
+        # system WebKit — so these are only needed (and only evaluate cleanly)
+        # on Linux. Guarding with isLinux keeps the macOS dev shell from
+        # evaluating webkitgtk, which is unused there and can be marked broken
+        # upstream.
+        tauriDeps = pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           webkitgtk_4_1
           gtk3
           libsoup_3
@@ -55,7 +58,7 @@
           atk
           librsvg
           openssl
-        ];
+        ]);
 
         # The server: one Rust binary with bundled SQLite. buildRustPackage
         # reads server/Cargo.lock directly, so dependency versions are pinned
