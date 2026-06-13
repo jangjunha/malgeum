@@ -33,6 +33,27 @@ CGNAT), run the same compose file on a small VPS in Seoul instead — Vultr,
 Lightsail, or Oracle Cloud free tier all work; TURN egress only matters for
 calls where a friend's direct P2P fails.
 
+### TURN behind a home router (NAT)
+
+If the box has a private LAN address behind a router (typical home setup),
+coturn must be told its public address or it will hand out unreachable relay
+candidates. Add `--external-ip` to the `coturn` service command in
+`docker-compose.yml`:
+
+```yaml
+    command: >-
+      --fingerprint
+      --use-auth-secret
+      --static-auth-secret=${TURN_SECRET}
+      --realm=${DOMAIN}
+      --listening-port=3478
+      --min-port=49160
+      --max-port=49200
+      --external-ip=<your-public-ip>/<this-host-lan-ip>
+```
+
+On a VPS with a directly-attached public IP this is not needed.
+
 ## Bare binary (no Docker)
 
 Each tagged release ships a static, dependency-free `vc-server` binary for
