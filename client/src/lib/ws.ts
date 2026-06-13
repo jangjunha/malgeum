@@ -28,8 +28,13 @@ export class EventSocket {
   private ws: WebSocket | null = null;
   private closed = false;
   private backoffMs = 500;
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
   private listeners = new Set<(ev: ServerEvent) => void>();
   private openListeners = new Set<() => void>();
+
+  // Keep the socket alive through reverse-proxy idle timeouts (e.g. nginx's
+  // default 60s proxy_read_timeout), which otherwise drop the connection.
+  private static readonly PING_INTERVAL_MS = 30_000;
 
   constructor(
     private baseUrl: string,
@@ -44,6 +49,8 @@ export class EventSocket {
     this.ws = ws;
     ws.onopen = () => {
       this.backoffMs = 500;
+      this.stopPing();
+      this.pingTimer = setInterval(() => this.send({ type: 'ping' }), EventSocket.PING_INTERVAL_MS);
       for (const l of this.openListeners) l();
     };
     ws.onmessage = (e) => {
@@ -57,14 +64,23 @@ export class EventSocket {
     };
     ws.onclose = () => {
       this.ws = null;
+      this.stopPing();
       if (this.closed) return;
       setTimeout(() => this.connect(), this.backoffMs);
       this.backoffMs = Math.min(this.backoffMs * 2, 15_000);
     };
   }
 
+  private stopPing() {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+  }
+
   close() {
     this.closed = true;
+    this.stopPing();
     this.ws?.close();
   }
 

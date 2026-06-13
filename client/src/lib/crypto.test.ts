@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   b64u,
+  canonicalJson,
   decryptMessage,
   deserializeIdentity,
   encryptMessage,
@@ -96,6 +97,25 @@ describe('message encryption', () => {
     const alice = generateIdentity();
     const enc = encryptMessage(alice, generateSpaceKey(), meta, { t: 'text', body: 'hi' });
     expect(() => decryptMessage(alice.signPub, generateSpaceKey(), meta, enc)).toThrow();
+  });
+});
+
+describe('canonical json', () => {
+  it('is independent of object key order, recursively', () => {
+    const a = canonicalJson({ kind: 'sdp', description: { type: 'offer', sdp: 'v=0' } });
+    const b = canonicalJson({ description: { sdp: 'v=0', type: 'offer' }, kind: 'sdp' });
+    expect(a).toEqual(b);
+  });
+
+  it('lets a signed signal survive server key reordering', () => {
+    const alice = generateIdentity();
+    const payload = { kind: 'sdp', description: { type: 'offer', sdp: 'v=0...' } };
+    const sig = signSignal(alice, 's1', 'c1', 'alice', 'bob', canonicalJson(payload));
+    // Simulate serde_json on the server reordering object keys alphabetically.
+    const relayed = { description: { sdp: 'v=0...', type: 'offer' }, kind: 'sdp' };
+    expect(
+      verifySignal(alice.signPub, sig, 's1', 'c1', 'alice', 'bob', canonicalJson(relayed)),
+    ).toBe(true);
   });
 });
 

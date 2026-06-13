@@ -9,7 +9,7 @@
  * verified against the space's pinned member keys (docs/CRYPTO.md).
  */
 import type { Identity } from './crypto';
-import { signSignal, verifySignal } from './crypto';
+import { canonicalJson, signSignal, verifySignal } from './crypto';
 import type { EventSocket, ServerEvent } from './ws';
 
 export interface BroadcastSettings {
@@ -304,7 +304,9 @@ export class CallManager {
   }
 
   private sendSignal(to: string, payload: SignalPayload) {
-    const payloadJson = JSON.stringify(payload);
+    // Canonical (sorted-key) JSON so the signature survives the server's
+    // re-serialization of the payload (which reorders object keys).
+    const payloadJson = canonicalJson(payload);
     const sig = signSignal(this.identity, this.spaceId, this.channelId, this.myId, to, payloadJson);
     this.socket.send({ type: 'signal', channel_id: this.channelId, to, payload, sig });
   }
@@ -312,9 +314,9 @@ export class CallManager {
   private async handleSignal(from: string, payload: SignalPayload, sig: string) {
     const pub = this.getSignPub(from);
     if (!pub) return;
-    // The payload was re-serialized by the server; verify against the
-    // canonical re-serialization the sender signed.
-    const payloadJson = JSON.stringify(payload);
+    // The payload was re-serialized (and key-reordered) by the server; verify
+    // against the same canonical form the sender signed.
+    const payloadJson = canonicalJson(payload);
     if (!verifySignal(pub, sig, this.spaceId, this.channelId, from, this.myId, payloadJson)) {
       console.warn(`rejected signal with bad signature from ${from}`);
       return;

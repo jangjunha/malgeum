@@ -185,6 +185,28 @@ export function decryptMessage(
 
 // ---------- call signaling ----------
 
+/**
+ * Deterministic JSON with recursively sorted object keys. Signaling payloads
+ * are relayed through the server as `serde_json::Value`, which reorders object
+ * keys, so both signer and verifier must canonicalize identically rather than
+ * relying on insertion order.
+ */
+export function canonicalJson(value: unknown): string {
+  return JSON.stringify(sortKeys(value));
+}
+
+function sortKeys(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(sortKeys);
+  if (v !== null && typeof v === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(v as Record<string, unknown>).sort()) {
+      out[k] = sortKeys((v as Record<string, unknown>)[k]);
+    }
+    return out;
+  }
+  return v;
+}
+
 function signalBytes(
   spaceId: string,
   channelId: string,
