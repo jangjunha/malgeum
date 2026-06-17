@@ -9,6 +9,7 @@
  */
 import { Api, type Member, type Space, type StickerMeta, type WireMessage } from './api';
 import { CallManager, DEFAULT_BROADCAST, type BroadcastSettings, type PeerStats } from './call';
+import { AudioMixer } from './mixer';
 import { credentials, migrateLegacyAccount, type AccountIndex } from './credentials';
 import {
   b64u,
@@ -17,6 +18,7 @@ import {
   deserializeIdentity,
   encryptBlob,
   encryptMessage,
+  fingerprint,
   generateIdentity,
   generateSpaceKey,
   loginSignature,
@@ -43,6 +45,11 @@ export interface ChatMessage {
   ok: boolean; // false = could not decrypt/verify
 }
 
+export interface OutputDevice {
+  deviceId: string;
+  label: string;
+}
+
 export interface ActiveCall {
   serverId: string;
   selfId: string;
@@ -53,7 +60,15 @@ export interface ActiveCall {
   remoteStreams: Record<string, MediaStream[]>;
   stats: Record<string, PeerStats>;
   micMuted: boolean;
+  /** Incoming audio silenced (and mic forced muted, Discord-style). */
+  deafened: boolean;
   broadcasting: boolean;
+  /** userId → playback volume (1 = 100%, up to 2 = 200%). */
+  peerVolumes: Record<string, number>;
+  /** Selected call-audio output device ('' = system default). */
+  outputDeviceId: string;
+  /** Pickable audio outputs, when the webview supports choosing one. */
+  outputDevices: OutputDevice[];
 }
 
 /** Reactive, non-secret view of a connected server, shown in the UI. */
@@ -113,6 +128,11 @@ class AppStore {
 
   call = $state<ActiveCall | null>(null);
   broadcastSettings = $state<BroadcastSettings>({ ...DEFAULT_BROADCAST });
+
+  /** WebAudio playback graph for the current call. Never reactive. */
+  private mixer: AudioMixer | null = null;
+  /** Mic muted-state captured when deafening, restored on undeafen. */
+  private preDeafenMicMuted = false;
 
   /** serverId → live connection. Never reactive. */
   private conns = new Map<string, ServerConn>();
@@ -696,6 +716,18 @@ class AppStore {
 
   // ---------- identity backup ----------
 
+  /** Our signing public key on this server (base64url) — safe to share. */
+  selfSignPub(serverId: string): string {
+    const conn = this.conn(serverId);
+    return conn ? b64u(conn.identity.signPub) : '';
+  }
+
+  /** Short human-comparable fingerprint of our public keys on this server. */
+  selfFingerprint(serverId: string): string {
+    const conn = this.conn(serverId);
+    return conn ? fingerprint(conn.identity.signPub, conn.identity.kemPub) : '';
+  }
+
   /** Identity backup the user can save to move devices (docs/CRYPTO.md). */
   exportIdentity(serverId: string): string {
     const conn = this.conn(serverId);
@@ -721,6 +753,7 @@ class AppStore {
       ? [{ urls: turn.urls, username: turn.username, credential: turn.credential }]
       : [{ urls: turn.urls }];
 
+    this.mixer = new AudioMixer();
     const manager = new CallManager(
       conn.socket,
       conn.identity,
@@ -735,6 +768,9 @@ class AppStore {
         },
         onRemoteStreams: (userId, streams) => {
           if (!this.call) return;
+          // The mixer plays all audio (voice + shared system audio); the UI
+          // only renders the video tiles from these same streams.
+          this.mixer?.setUserStreams(userId, streams);
           if (streams.length === 0) delete this.call.remoteStreams[userId];
           else this.call.remoteStreams[userId] = streams;
         },
@@ -762,25 +798,94 @@ class AppStore {
       remoteStreams: {},
       stats: {},
       micMuted: false,
+      deafened: false,
       broadcasting: false,
+      peerVolumes: {},
+      outputDeviceId: '',
+      outputDevices: [],
     };
     try {
       await manager.join();
+      void this.refreshOutputDevices();
     } catch (e) {
+      this.mixer?.close();
+      this.mixer = null;
       this.call = null;
       this.error = `Could not join call: ${e instanceof Error ? e.message : e}`;
     }
   }
 
   leaveCall() {
+    const mixer = this.mixer;
+    this.mixer = null;
     this.call?.manager.leave();
+    mixer?.close();
     this.call = null;
   }
 
   toggleMic() {
     if (!this.call) return;
-    this.call.micMuted = !this.call.micMuted;
-    this.call.manager.setMicMuted(this.call.micMuted);
+    const muted = !this.call.micMuted;
+    this.call.micMuted = muted;
+    this.call.manager.setMicMuted(muted);
+    // Unmuting means you want to talk — so you're no longer deafened either.
+    if (!muted && this.call.deafened) {
+      this.call.deafened = false;
+      this.mixer?.setDeafened(false);
+    }
+  }
+
+  /** Deafen mutes everyone you hear and (Discord-style) forces your mic muted. */
+  toggleDeafen() {
+    if (!this.call) return;
+    const deafened = !this.call.deafened;
+    if (deafened) {
+      this.preDeafenMicMuted = this.call.micMuted;
+      if (!this.call.micMuted) {
+        this.call.micMuted = true;
+        this.call.manager.setMicMuted(true);
+      }
+    } else if (this.call.micMuted !== this.preDeafenMicMuted) {
+      this.call.micMuted = this.preDeafenMicMuted;
+      this.call.manager.setMicMuted(this.preDeafenMicMuted);
+    }
+    this.call.deafened = deafened;
+    this.mixer?.setDeafened(deafened);
+  }
+
+  setPeerVolume(userId: string, volume: number) {
+    if (!this.call) return;
+    this.call.peerVolumes[userId] = volume;
+    this.mixer?.setVolume(userId, volume);
+  }
+
+  peerVolume(userId: string): number {
+    return this.call?.peerVolumes[userId] ?? 1;
+  }
+
+  /** Route call audio to a chosen output device (breaks system-audio loopback). */
+  async setOutputDevice(deviceId: string) {
+    if (!this.call) return;
+    try {
+      await this.mixer?.setSinkId(deviceId);
+      this.call.outputDeviceId = deviceId;
+    } catch (e) {
+      this.error = `Could not switch audio output: ${e instanceof Error ? e.message : e}`;
+    }
+  }
+
+  private async refreshOutputDevices() {
+    if (!this.call || !AudioMixer.outputDeviceSelectable()) return;
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputs = devices
+        .filter((d) => d.kind === 'audiooutput')
+        .map((d) => ({ deviceId: d.deviceId, label: d.label || 'Audio output' }));
+      if (this.call) this.call.outputDevices = outputs;
+    } catch {
+      /* device labels need permission we may lack; leave the list empty */
+    }
   }
 
   async toggleBroadcast() {
