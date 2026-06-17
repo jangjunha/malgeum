@@ -4,9 +4,10 @@ name: release
 #  - push a version tag:   git tag v0.1.0 && git push origin v0.1.0
 #  - run manually:         Actions ▸ release ▸ "Run workflow" (enter version)
 # Either way this builds static server binaries, a signed/notarized macOS
-# desktop client, and a Windows desktop client (-> GitHub Releases) plus a
-# multi-arch server image (-> GitHub Packages / GHCR). On manual runs the
-# workflow itself creates the tag, so no local tag push is required.
+# desktop client, and a Windows desktop client plus a multi-arch server image
+# (-> GitHub Packages / GHCR, and also exported as an OCI archive). All of
+# these land on the GitHub Release. On manual runs the workflow itself creates
+# the tag, so no local tag push is required.
 on:
   push:
     tags: ["v*"]
@@ -202,7 +203,7 @@ jobs:
 
   release:
     name: github release
-    needs: [setup, binaries, client-macos, client-windows]
+    needs: [setup, binaries, client-macos, client-windows, image]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v7
@@ -250,7 +251,13 @@ jobs:
           context: server/ctx
           file: server/Dockerfile.release
           platforms: linux/amd64,linux/arm64
-          push: true
+          # Push the multi-arch image to GHCR *and* export the same multi-arch
+          # image as an OCI archive so it can ride along on the GitHub Release
+          # (load it with `skopeo`/`podman load`, or `docker load` on engines
+          # with the containerd image store).
+          outputs: |
+            type=image,push=true
+            type=oci,dest=/tmp/malguem-server-image-oci.tar
           tags: |
             ghcr.io/${{ github.repository }}/server:${{ needs.setup.outputs.semver }}
             ghcr.io/${{ github.repository }}/server:latest
@@ -262,3 +269,16 @@ jobs:
           subject-name: ghcr.io/${{ github.repository }}/server
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
+      - name: Package image archive + checksum
+        run: |
+          set -eux
+          dist="malguem-server-${{ needs.setup.outputs.version }}-image-oci"
+          mkdir -p out
+          gzip -c /tmp/malguem-server-image-oci.tar > "out/${dist}.tar.gz"
+          sha256sum "out/${dist}.tar.gz" > "out/${dist}.tar.gz.sha256"
+      # Picked up by the release job's `release-*` download glob.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-image
+          path: out/*
+          if-no-files-found: error
